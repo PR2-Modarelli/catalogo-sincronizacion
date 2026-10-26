@@ -1,6 +1,7 @@
 package ar.com.modarelli.catalogo;
 
 import ar.com.modarelli.catalogo.modelo.Categoria;
+import ar.com.modarelli.catalogo.modelo.Profesional;
 
 public class PruebaCatalogo {
 
@@ -12,9 +13,35 @@ public class PruebaCatalogo {
             true
         );
 
-        System.out.println("ID: " + categoria.getId());
-        System.out.println("Nombre: " + categoria.getNombre());
-        System.out.println("Descripción: " + categoria.getDescripcion());
-        System.out.println("Habilitada: " + categoria.isHabilitada());
+        Profesional profesional1 = new Profesional(
+            15L,
+            "Ana",
+            "Gómez",
+            categoria,
+            true
+        );
+
+        Profesional profesional2 = new Profesional(
+            16L,
+            "Luis",
+            "Pérez",
+            categoria,
+            false
+        );
+
+        mostrarProfesional(profesional1);
+        mostrarProfesional(profesional2);
+    }
+
+    public static void mostrarProfesional(Profesional profesional) {
+        System.out.println(
+            "Profesional: " + profesional.getNombre()
+            + " " + profesional.getApellido()
+        );
+        System.out.println(
+            "Categoría: " + profesional.getCategoria().getNombre()
+        );
+        System.out.println("Habilitado: " + profesional.isHabilitado());
+        System.out.println();
     }
 }
