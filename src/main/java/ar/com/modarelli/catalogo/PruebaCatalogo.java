@@ -6,72 +6,73 @@ import ar.com.modarelli.catalogo.modelo.HorarioSemanal;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PruebaCatalogo {
 
     public static void main(String[] args) {
 
-        // Creamos una categoría.
-        Categoria categoria = new Categoria(
+        Categoria clinica = new Categoria(
             1L,
             "Clínica médica",
             "Atención clínica general",
             true
         );
 
-        // Creamos dos profesionales de esa categoría.
-        Profesional profesional1 = new Profesional(
-            15L,
-            "Ana",
-            "Gómez",
-            categoria,
+        Categoria odontologia = new Categoria(
+            2L,
+            "Odontología",
+            "Atención odontológica general",
             true
         );
 
-        Profesional profesional2 = new Profesional(
-            16L,
-            "Luis",
-            "Pérez",
-            categoria,
-            false
+        Profesional ana = new Profesional(
+            15L, "Ana", "Gómez", clinica, true
         );
 
-
-        List<Profesional> profesionales = List.of(
-            profesional1,
-            profesional2
+        Profesional luis = new Profesional(
+            16L, "Luis", "Pérez", clinica, false
         );
 
-        String nombreBuscado = "Luis";
+        Profesional carla = new Profesional(
+            17L, "Carla", "López", odontologia, true
+        );
 
-        System.out.println("Cantidad de profesionales: " + profesionales.size());
-        System.out.println("Profesionales habilitados con nombre: " + nombreBuscado);
+        List<Profesional> profesionales = List.of(ana, luis, carla);
 
-        int cantidadEncontrados = 0;
+        System.out.println(
+            "Cantidad total de profesionales: " + profesionales.size()
+        );
 
-        for (Profesional profesional : profesionales) {
-            if (profesional.isHabilitado()
-                && profesional.getNombre().equalsIgnoreCase(nombreBuscado)) {
+        mostrarResultados(
+            "1. Nombre Ana, sin otros filtros",
+            buscarProfesionales(profesionales, "Ana", null, null)
+        );
 
-                mostrarProfesional(profesional);
-                cantidadEncontrados++;
-            }
-        }
+        mostrarResultados(
+            "2. Categoría Odontología, sin otros filtros",
+            buscarProfesionales(profesionales, null, 2L, null)
+        );
 
-        if (cantidadEncontrados == 0) {
-            System.out.println("No se encontraron profesionales con esos filtros.");
-        }
+        mostrarResultados(
+            "3. Solo profesionales deshabilitados",
+            buscarProfesionales(profesionales, null, null, false)
+        );
 
-        System.out.println();
+        mostrarResultados(
+            "4. Ana, de Clínica médica y habilitada",
+            buscarProfesionales(profesionales, "Ana", 1L, true)
+        );
 
+        mostrarResultados(
+            "5. Ana, de Odontología y habilitada",
+            buscarProfesionales(profesionales, "Ana", 2L, true)
+        );
 
-        
-
-        // Creamos un horario semanal para Ana.
         HorarioSemanal horario = new HorarioSemanal(
             21L,
-            profesional1,
+            ana,
             DayOfWeek.MONDAY,
             LocalTime.of(9, 0),
             LocalTime.of(12, 0),
@@ -79,9 +80,9 @@ public class PruebaCatalogo {
             true
         );
 
-        // Mostramos los datos del horario.
+        System.out.println("\n--- Ejemplo de horario semanal ---");
         System.out.println(
-            "Horario de: " + horario.getProfesional().getNombre()
+            "Profesional: " + horario.getProfesional().getNombre()
         );
         System.out.println("Día: " + horario.getDiaSemana());
         System.out.println("Desde: " + horario.getHoraInicio());
@@ -96,6 +97,50 @@ public class PruebaCatalogo {
         );
     }
 
+    public static List<Profesional> buscarProfesionales(
+        List<Profesional> profesionales,
+        String nombre,
+        Long categoriaId,
+        Boolean habilitado
+    ) {
+        List<Profesional> resultados = new ArrayList<>();
+
+        for (Profesional profesional : profesionales) {
+
+            boolean coincideNombre = nombre == null
+                || profesional.getNombre().equalsIgnoreCase(nombre);
+
+            boolean coincideCategoria = categoriaId == null
+                || profesional.getCategoria().getId().equals(categoriaId);
+
+            boolean coincideEstado = habilitado == null
+                || profesional.isHabilitado() == habilitado;
+
+            if (coincideNombre && coincideCategoria && coincideEstado) {
+                resultados.add(profesional);
+            }
+        }
+
+        return resultados;
+    }
+
+    public static void mostrarResultados(
+        String titulo,
+        List<Profesional> resultados
+    ) {
+        System.out.println("\n--- " + titulo + " ---");
+
+        if (resultados.isEmpty()) {
+            System.out.println(
+                "No se encontraron profesionales con esos filtros."
+            );
+        } else {
+            for (Profesional profesional : resultados) {
+                mostrarProfesional(profesional);
+            }
+        }
+    }
+
     public static void mostrarProfesional(Profesional profesional) {
         System.out.println(
             "Profesional: " + profesional.getNombre()
@@ -104,7 +149,8 @@ public class PruebaCatalogo {
         System.out.println(
             "Categoría: " + profesional.getCategoria().getNombre()
         );
-        System.out.println("Habilitado: " + profesional.isHabilitado());
-        System.out.println();
+        System.out.println(
+            "Habilitado: " + profesional.isHabilitado()
+        );
     }
 }
