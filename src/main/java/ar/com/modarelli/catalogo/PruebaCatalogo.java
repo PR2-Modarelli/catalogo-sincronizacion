@@ -6,6 +6,7 @@ import ar.com.modarelli.catalogo.modelo.HorarioSemanal;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.List;
 
 public class PruebaCatalogo {
 
@@ -36,8 +37,36 @@ public class PruebaCatalogo {
             false
         );
 
-        mostrarProfesional(profesional1);
-        mostrarProfesional(profesional2);
+
+        List<Profesional> profesionales = List.of(
+            profesional1,
+            profesional2
+        );
+
+        String nombreBuscado = "Luis";
+
+        System.out.println("Cantidad de profesionales: " + profesionales.size());
+        System.out.println("Profesionales habilitados con nombre: " + nombreBuscado);
+
+        int cantidadEncontrados = 0;
+
+        for (Profesional profesional : profesionales) {
+            if (profesional.isHabilitado()
+                && profesional.getNombre().equalsIgnoreCase(nombreBuscado)) {
+
+                mostrarProfesional(profesional);
+                cantidadEncontrados++;
+            }
+        }
+
+        if (cantidadEncontrados == 0) {
+            System.out.println("No se encontraron profesionales con esos filtros.");
+        }
+
+        System.out.println();
+
+
+        
 
         // Creamos un horario semanal para Ana.
         HorarioSemanal horario = new HorarioSemanal(
