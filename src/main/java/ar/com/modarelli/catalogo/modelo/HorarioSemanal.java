@@ -22,6 +22,36 @@ public class HorarioSemanal {
         int duracionTurnoMinutos,
         boolean habilitado
     ) {
+        if (profesional == null) {
+            throw new IllegalArgumentException(
+                "El profesional es obligatorio."
+            );
+        }
+
+        if (diaSemana == null) {
+            throw new IllegalArgumentException(
+                "El día de la semana es obligatorio."
+            );
+        }
+
+        if (horaInicio == null || horaFin == null) {
+            throw new IllegalArgumentException(
+                "Las horas de inicio y fin son obligatorias."
+            );
+        }
+
+        if (!horaFin.isAfter(horaInicio)) {
+            throw new IllegalArgumentException(
+                "La hora de fin debe ser posterior a la hora de inicio."
+            );
+        }
+
+        if (duracionTurnoMinutos <= 0) {
+            throw new IllegalArgumentException(
+                "La duración del turno debe ser mayor que cero."
+            );
+        }
+
         this.id = id;
         this.profesional = profesional;
         this.diaSemana = diaSemana;
