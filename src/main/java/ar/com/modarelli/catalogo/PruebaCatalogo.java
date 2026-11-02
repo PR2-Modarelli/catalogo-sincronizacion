@@ -1,13 +1,13 @@
 package ar.com.modarelli.catalogo;
 
-import ar.com.modarelli.catalogo.modelo.Categoria;
-import ar.com.modarelli.catalogo.modelo.Profesional;
-import ar.com.modarelli.catalogo.modelo.HorarioSemanal;
-
 import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
+
+import ar.com.modarelli.catalogo.modelo.Categoria;
+import ar.com.modarelli.catalogo.modelo.HorarioSemanal;
+import ar.com.modarelli.catalogo.modelo.Profesional;
+import ar.com.modarelli.catalogo.servicio.CatalogoServicio;
 
 public class PruebaCatalogo {
 
@@ -41,33 +41,46 @@ public class PruebaCatalogo {
 
         List<Profesional> profesionales = List.of(ana, luis, carla);
 
+        // Creamos el objeto que realizará las búsquedas.
+        CatalogoServicio catalogoServicio = new CatalogoServicio();
+
         System.out.println(
             "Cantidad total de profesionales: " + profesionales.size()
         );
 
         mostrarResultados(
             "1. Nombre Ana, sin otros filtros",
-            buscarProfesionales(profesionales, "Ana", null, null)
+            catalogoServicio.buscarProfesionales(
+                profesionales, "Ana", null, null
+            )
         );
 
         mostrarResultados(
             "2. Categoría Odontología, sin otros filtros",
-            buscarProfesionales(profesionales, null, 2L, null)
+            catalogoServicio.buscarProfesionales(
+                profesionales, null, 2L, null
+            )
         );
 
         mostrarResultados(
             "3. Solo profesionales deshabilitados",
-            buscarProfesionales(profesionales, null, null, false)
+            catalogoServicio.buscarProfesionales(
+                profesionales, null, null, false
+            )
         );
 
         mostrarResultados(
             "4. Ana, de Clínica médica y habilitada",
-            buscarProfesionales(profesionales, "Ana", 1L, true)
+            catalogoServicio.buscarProfesionales(
+                profesionales, "Ana", 1L, true
+            )
         );
 
         mostrarResultados(
             "5. Ana, de Odontología y habilitada",
-            buscarProfesionales(profesionales, "Ana", 2L, true)
+            catalogoServicio.buscarProfesionales(
+                profesionales, "Ana", 2L, true
+            )
         );
 
         HorarioSemanal horario = new HorarioSemanal(
@@ -95,33 +108,6 @@ public class PruebaCatalogo {
         System.out.println(
             "Horario habilitado: " + horario.isHabilitado()
         );
-    }
-
-    public static List<Profesional> buscarProfesionales(
-        List<Profesional> profesionales,
-        String nombre,
-        Long categoriaId,
-        Boolean habilitado
-    ) {
-        List<Profesional> resultados = new ArrayList<>();
-
-        for (Profesional profesional : profesionales) {
-
-            boolean coincideNombre = nombre == null
-                || profesional.getNombre().equalsIgnoreCase(nombre);
-
-            boolean coincideCategoria = categoriaId == null
-                || profesional.getCategoria().getId().equals(categoriaId);
-
-            boolean coincideEstado = habilitado == null
-                || profesional.isHabilitado() == habilitado;
-
-            if (coincideNombre && coincideCategoria && coincideEstado) {
-                resultados.add(profesional);
-            }
-        }
-
-        return resultados;
     }
 
     public static void mostrarResultados(
