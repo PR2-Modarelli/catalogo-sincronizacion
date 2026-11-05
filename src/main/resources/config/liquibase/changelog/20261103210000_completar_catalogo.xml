@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+ <changeSet id="20261103210000-1" author="modarelli">
+ <sql><![CDATA[
+ALTER TABLE categoria ALTER COLUMN descripcion TYPE text;
+CREATE TABLE profesional (
+ id bigint PRIMARY KEY, nombre varchar(255) NOT NULL, apellido varchar(255) NOT NULL,
+ categoria_id bigint NOT NULL REFERENCES categoria(id), habilitado boolean NOT NULL,
+ fecha_creacion timestamp with time zone NOT NULL, fecha_actualizacion timestamp with time zone NOT NULL
+);
+CREATE INDEX idx_profesional_categoria ON profesional(categoria_id);
+CREATE TABLE horario_semanal (
+ id bigint PRIMARY KEY, profesional_id bigint NOT NULL REFERENCES profesional(id),
+ dia_semana varchar(255) NOT NULL CHECK (dia_semana IN ('MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY')),
+ hora_inicio time(6) NOT NULL, hora_fin time(6) NOT NULL,
+ duracion_turno_minutos integer NOT NULL CHECK (duracion_turno_minutos > 0), habilitado boolean NOT NULL,
+ fecha_creacion timestamp with time zone NOT NULL, fecha_actualizacion timestamp with time zone NOT NULL,
+ CONSTRAINT ck_horario_orden CHECK (hora_fin > hora_inicio)
+);
+CREATE INDEX idx_horario_profesional ON horario_semanal(profesional_id);
+CREATE TABLE estado_catalogo (
+ id bigint PRIMARY KEY CHECK (id = 1), version_aplicada bigint CHECK (version_aplicada >= 0), sincronizado_en timestamp with time zone
+);
+INSERT INTO estado_catalogo(id) VALUES (1);
+ ]]></sql>
+ <rollback><sql>DROP TABLE estado_catalogo; DROP TABLE horario_semanal; DROP TABLE profesional;</sql></rollback>
+ </changeSet>
+</databaseChangeLog>

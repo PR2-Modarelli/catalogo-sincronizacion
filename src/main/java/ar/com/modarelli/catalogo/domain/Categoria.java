@@ -17,7 +17,7 @@ public class Categoria {
     @Column(name = "nombre", nullable = false)
     private String nombre;
 
-    @Column(name = "descripcion")
+    @Column(name = "descripcion", columnDefinition = "text")
     private String descripcion;
 
     @Column(name = "habilitada", nullable = false)

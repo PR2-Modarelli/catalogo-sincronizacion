@@ -1,174 +1,96 @@
-# catalogo
+# Servicio de catálogo y sincronización
 
-This application was generated using JHipster 9.4.0, you can find documentation and help at [https://www.jhipster.tech/documentation-archive/v9.4.0](https://www.jhipster.tech/documentation-archive/v9.4.0).
+## Requisitos
 
-This is a "microservice" application intended to be part of a microservice architecture, please refer to the [Doing microservices with JHipster][] page of the documentation for more information.
+- Java 21.
+- Node.js >=24.21.0 y npm, según `package.json`.
+- Docker con Docker Compose.
+- Python 3 para preparar las variables de entorno.
+- Conectividad con la cátedra y cuenta técnica para la sincronización real.
 
-## Project Structure
+## Configuración
 
-Node is required for generation and recommended for development. `package.json` is always generated for a better development experience with prettier, commit hooks, scripts and so on.
-
-In the project root, JHipster generates configuration files for tools like git, prettier, eslint, husky, and others that are well known and you can find references in the web.
-
-`/src/*` structure follows default Java structure.
-
-- `.yo-rc.json` - Yeoman configuration file
-  JHipster configuration is stored in this file at `generator-jhipster` key. You may find `generator-jhipster-*` for specific blueprints configuration.
-- `.yo-resolve` (optional) - Yeoman conflict resolver
-  Allows to use a specific action when conflicts are found skipping prompts for files that matches a pattern. Each line should match `[pattern] [action]` with pattern been a [Minimatch](https://github.com/isaacs/minimatch#minimatch) pattern and action been one of skip (default if omitted) or force. Lines starting with `#` are considered comments and are ignored.
-- `.jhipster/*.json` - JHipster entity configuration files
-- `/src/main/docker` - Docker configurations for the application and services that the application depends on
-
-## Development
-
-To start your application in the dev profile, run:
+Desde la raíz de este repositorio:
 
 ```bash
+npm ci
+python3 scripts/preparar-entorno.py
+```
+
+El script crea `.env` si no existe. Completar las variables de integración en ese archivo. Consultar `.env.example` como referencia. No incluir credenciales reales en archivos versionados.
+
+| Variable | Descripción |
+| --- | --- |
+| `CATALOGO_JWT_SECRET` | Clave Base64 propia para los JWT de la aplicación, generada por el script de preparación. |
+| `CATALOGO_CATEDRA_BASE_URL` | URL base REST de la cátedra, sin `/api` al final. |
+| `CATALOGO_CATEDRA_TOKEN` | JWT técnico de la cátedra, sin el prefijo `Bearer`. |
+| `CATALOGO_DB_USER` | Usuario de PostgreSQL. Valor local predeterminado: `catalogo`. |
+| `CATALOGO_DB_PASSWORD` | Contraseña de PostgreSQL. El Compose local actual utiliza autenticación `trust`. |
+
+El JWT técnico se utiliza únicamente para la integración del backend con la cátedra.
+
+## Ejecución local
+
+Iniciar PostgreSQL y Kafka:
+
+```bash
+docker compose -f src/main/docker/postgresql.yml -f src/main/docker/kafka.yml up -d
+```
+
+Cargar la configuración e iniciar el servicio desde Bash:
+
+```bash
+set -a
+source .env
+set +a
 ./mvnw
 ```
 
-For further instructions on how to develop with JHipster, have a look at [Using JHipster in development][].
+El backend escucha en `http://localhost:8081`. PostgreSQL utiliza el puerto local `5433` y Kafka el `9092`. Liquibase aplica las migraciones durante el inicio del backend.
 
-## Building for production
-
-### Packaging as jar
-
-To build the final jar and optimize the catalogo application for production, run:
+Desde otra terminal, comprobar que responde:
 
 ```bash
-./mvnw -Pprod clean verify
+curl --max-time 10 http://localhost:8081/management/health
 ```
 
-To ensure everything worked, run:
+Para descargar el catálogo completo, con el servicio iniciado, cargar el entorno en la segunda terminal y generar un JWT administrativo local de desarrollo:
 
 ```bash
-java -jar target/*.jar
+set -a
+source .env
+set +a
+export TOKEN_DEMO="$(python3 scripts/token-desarrollo.py)"
+curl -i --max-time 30 -X POST \
+  -H "Authorization: Bearer $TOKEN_DEMO" \
+  http://localhost:8081/api/admin/catalogo/sincronizacion-completa
 ```
 
-Refer to [Using JHipster in production][] for more details.
-
-### Packaging as war
-
-To package your application as a war in order to deploy it to an application server, run:
+Este token local dura 15 minutos y es una herramienta de desarrollo. La descarga requiere las variables de integración configuradas. Para consultar el estado:
 
 ```bash
-./mvnw -Pprod,war clean verify
+curl --max-time 10 -H "Authorization: Bearer $TOKEN_DEMO" \
+  http://localhost:8081/api/catalogo/estado
 ```
 
-### JHipster Control Center
-
-JHipster Control Center can help you manage and control your application(s). You can start a local control center server (accessible on http://localhost:7419) with:
+Detener el backend con `Ctrl+C`. Para detener los contenedores:
 
 ```bash
-docker compose -f src/main/docker/jhipster-control-center.yml up
+docker compose -f src/main/docker/postgresql.yml -f src/main/docker/kafka.yml stop
 ```
 
-## Testing
+## Pruebas automatizadas
 
-### Spring Boot tests
-
-To launch your application's tests, run:
+Contrato HTTP y validaciones, sin Docker ni conexión con la cátedra:
 
 ```bash
-./mvnw verify
+./mvnw -Dtest=CatedraSnapshotClienteTest,SnapshotValidacionTest test
 ```
 
-## Others
-
-### Code quality using Sonar
-
-Sonar is used to analyse code quality. You can start a local Sonar server (accessible on http://localhost:9001) with:
+Persistencia y API con PostgreSQL de Testcontainers, con Docker disponible:
 
 ```bash
-docker compose -f src/main/docker/sonar.yml up -d
+./mvnw -Duser.timezone=America/Argentina/Mendoza -Dtest=CategoriaRepositoryIT,CatalogoPersistenciaIT test
 ```
 
-Note: we have turned off forced authentication redirect for UI in [src/main/docker/sonar.yml](src/main/docker/sonar.yml) for out of the box experience while trying out SonarQube, for real use cases turn it back on.
-
-You can run a Sonar analysis with using the [sonar-scanner](https://docs.sonarqube.org/display/SCAN/Analyzing+with+SonarQube+Scanner) or by using the maven plugin.
-
-Then, run a Sonar analysis:
-
-```bash
-./mvnw -Pprod clean verify sonar:sonar -Dsonar.login=admin -Dsonar.password=admin
-```
-
-If you need to re-run the Sonar phase, please be sure to specify at least the `initialize` phase since Sonar properties are loaded from the sonar-project.properties file.
-
-```bash
-./mvnw initialize sonar:sonar -Dsonar.login=admin -Dsonar.password=admin
-```
-
-Additionally, Instead of passing `sonar.password` and `sonar.login` as CLI arguments, these parameters can be configured from [sonar-project.properties](sonar-project.properties) as shown below:
-
-```bash
-sonar.login=admin
-sonar.password=admin
-```
-
-For more information, refer to the [Code quality page][].
-
-### Docker Compose support
-
-JHipster generates a number of Docker Compose configuration files in the [src/main/docker/](src/main/docker/) folder to launch required third party services.
-
-For example, to start required services in Docker containers, run:
-
-```bash
-docker compose -f src/main/docker/services.yml up -d
-```
-
-To stop and remove the containers, run:
-
-```bash
-docker compose -f src/main/docker/services.yml down
-```
-
-[Spring Docker Compose Integration](https://docs.spring.io/spring-boot/reference/features/dev-services.html) is enabled by default. It's possible to disable it in `application.yml`:
-
-```yaml
-spring:
-  ...
-  docker:
-    compose:
-      enabled: false
-```
-
-You can also fully dockerize your application and all the services that it depends on.
-To achieve this, first build a Docker image of your app by running:
-
-```bash
-npm run java:docker
-```
-
-Or build an arm64 Docker image when using an arm64 processor OS, i.e., Apple Silicon chips (M*), running:
-
-```bash
-npm run java:docker:arm64
-```
-
-Then run:
-
-```bash
-docker compose -f src/main/docker/app.yml up -d
-```
-
-For more information refer to [Docker and Docker-Compose](https://www.jhipster.tech/documentation-archive/v9.4.0/docker-compose/), this page also contains information on the Docker Compose sub-generator (`jhipster docker-compose`), which is able to generate Docker configurations for one or several JHipster applications.
-
-## Continuous Integration (optional)
-
-To configure CI for your project, run the ci-cd sub-generator (`jhipster ci-cd`), this will let you generate configuration files for a number of Continuous Integration systems. Consult the [Setting up Continuous Integration](https://www.jhipster.tech/documentation-archive/v9.4.0/setting-up-ci/) page for more information.
-
-## References
-
-- [JHipster Homepage and latest documentation](https://www.jhipster.tech/)
-- [JHipster 9.4.0 archive](https://www.jhipster.tech/documentation-archive/v9.4.0)
-- [Doing microservices with JHipster](https://www.jhipster.tech/documentation-archive/v9.4.0/microservices-architecture/)
-- [Using JHipster in development](https://www.jhipster.tech/documentation-archive/v9.4.0/development/)
-- [Using Docker and Docker-Compose](https://www.jhipster.tech/documentation-archive/v9.4.0/docker-compose)
-- [Using JHipster in production](https://www.jhipster.tech/documentation-archive/v9.4.0/production/)
-- [Running tests page](https://www.jhipster.tech/documentation-archive/v9.4.0/running-tests/)
-- [Code quality page](https://www.jhipster.tech/documentation-archive/v9.4.0/code-quality/)
-- [Setting up Continuous Integration](https://www.jhipster.tech/documentation-archive/v9.4.0/setting-up-ci/)
-- [Node.js](https://nodejs.org/)
-- [NPM](https://www.npmjs.com/)
+Testcontainers utiliza una base de pruebas separada de la base de desarrollo.
