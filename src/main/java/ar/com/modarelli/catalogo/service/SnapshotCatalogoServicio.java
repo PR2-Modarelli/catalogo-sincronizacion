@@ -60,7 +60,7 @@ public class SnapshotCatalogoServicio {
   exigir(ids.add(id));
  }
  private static boolean texto(String s) { return s!=null && !s.isBlank() && s.length()<=255; }
- private static void validar(SnapshotCatalogo s) {
+ static void validar(SnapshotCatalogo s) {
   exigir(s!=null);
   exigir(s.snapshotVersion()!=null && s.snapshotVersion()>=0 && s.generatedAt()!=null);
   exigir(s.professionalCategories()!=null && s.professionals()!=null && s.weeklySchedules()!=null);

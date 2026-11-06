@@ -84,13 +84,13 @@ docker compose -f src/main/docker/postgresql.yml -f src/main/docker/kafka.yml st
 Contrato HTTP y validaciones, sin Docker ni conexión con la cátedra:
 
 ```bash
-./mvnw -Dtest=CatedraSnapshotClienteTest,SnapshotValidacionTest test
+./mvnw -Dtest=CatedraSnapshotClienteTest,SnapshotValidacionTest,IncrementalValidacionTest test
 ```
 
 Persistencia y API con PostgreSQL de Testcontainers, con Docker disponible:
 
 ```bash
-./mvnw -Duser.timezone=America/Argentina/Mendoza -Dtest=CategoriaRepositoryIT,CatalogoPersistenciaIT test
+./mvnw -Duser.timezone=America/Argentina/Mendoza -Dtest=CategoriaRepositoryIT,CatalogoPersistenciaIT,CatalogoIncrementalIT test
 ```
 
 Testcontainers utiliza una base de pruebas separada de la base de desarrollo.

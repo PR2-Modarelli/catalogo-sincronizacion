@@ -66,3 +66,18 @@ Errores inesperados de persistencia se propagan como error del servidor y revier
 Las tablas categoria, profesional, horario_semanal y estado_catalogo pertenecen exclusivamente a este servicio. El backend de turnos deberá usar sus APIs; no leer estas tablas ni crear una réplica de búsqueda propia.
 
 Los IDs de catálogo son asignados por la cátedra. Las fechas de creación y actualización vienen del snapshot; sincronizadoEn registra la aplicación local. No se crean categorías, profesionales ni horarios mediante endpoints públicos de escritura.
+
+
+## Aplicación de una versión incremental
+
+`PersistenciaIncrementalServicio.aplicar(CambioCatalogo, EventoCatalogo)` recibe las entidades afectadas de una única versión. Es una operación interna; este bloque todavía no conecta Redis ni Kafka ni agrega una API pública para inyectar eventos.
+
+- Requiere un snapshot inicial y que la versión base coincida con la persistida. Solo admite avanzar a la versión consecutiva.
+- Valida el evento `CatalogUpdated`, esquema 1, y la coincidencia entre la versión del evento y la del cambio.
+- Conserva las entidades no afectadas y las bajas lógicas. Actualiza categorías, profesionales y horarios en orden de dependencias.
+- Valida las referencias sobre la combinación de los datos existentes y los recibidos antes de escribir.
+- Guarda entidades, versión, instante local de aplicación y `eventId` en una transacción. El bloqueo de la fila de estado se comparte con el snapshot completo.
+- El mismo `eventId` y versión ya procesados no vuelven a producir efectos. Reutilizar el identificador para otra versión se rechaza.
+- Si una escritura falla, la transacción revierte y el evento queda disponible para un reintento. Un salto de versión se rechaza sin modificar la copia local.
+
+La lectura de Redis, el consumidor Kafka, la confirmación del offset y la recuperación automática ante huecos se incorporarán al coordinador de sincronización. No se deben confirmar mensajes Kafka antes de que termine correctamente esta operación transaccional.
