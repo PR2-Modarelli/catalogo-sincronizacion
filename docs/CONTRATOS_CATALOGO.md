@@ -87,3 +87,7 @@ El coordinador compara versiones al iniciar y periódicamente, y responde a `Cat
 Sin body. Requiere JWT válido y ROLE_ADMIN. Revisa Redis y aplica cambios pendientes o reconstruye desde snapshot cuando corresponde. Devuelve `{"version":9}` con la versión local alcanzada; una revisión sin cambios también es exitosa. Si la integración está desactivada o falla, devuelve 503 y conserva los datos aplicados. El detalle de errores externos no se propaga.
 
 Ver [estrategia de sincronización](SINCRONIZACION_CATALOGO.md) para orden, idempotencia y recuperación.
+
+## GET /api/catalogo/profesionales/{id}/agenda
+
+Consulta protegida con JWT propio para el servicio de turnos. Devuelve `version`, `profesional` (mismos campos que la búsqueda), `categoriaHabilitada` y `horarios` (mismos campos que la consulta de horarios). Incluye estados deshabilitados para que turnos pueda rechazarlos. Toda la respuesta se obtiene en una transacción de lectura REPEATABLE_READ; profesional, categoría, reglas y versión pertenecen a la misma vista consistente. No inicializado: 503; profesional inexistente: 404; sin JWT: 401.

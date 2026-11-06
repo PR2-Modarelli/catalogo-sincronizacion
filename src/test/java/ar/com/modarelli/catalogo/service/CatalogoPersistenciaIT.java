@@ -161,4 +161,15 @@ void conservaHorasLocalesDeUnaAgendaDeTarde() {
     assertThat(recuperado.horaInicio()).isEqualTo(LocalTime.of(18, 0));
     assertThat(recuperado.horaFin()).isEqualTo(LocalTime.of(21, 0));
 }
+ @Test void agendaParaTurnosExponeVersionEstadosYReglas() throws Exception {
+  mvc.perform(get("/api/catalogo/profesionales/15/agenda")).andExpect(status().isUnauthorized());
+  mvc.perform(get("/api/catalogo/profesionales/15/agenda").with(jwt())).andExpect(status().isServiceUnavailable());
+  sincronizacion.aplicar(snapshot(7));
+  mvc.perform(get("/api/catalogo/profesionales/15/agenda").with(jwt())).andExpect(status().isOk())
+   .andExpect(jsonPath("$.version").value(7)).andExpect(jsonPath("$.profesional.id").value(15))
+   .andExpect(jsonPath("$.categoriaHabilitada").value(true)).andExpect(jsonPath("$.horarios[0].duracionTurnoMinutos").value(30));
+  mvc.perform(get("/api/catalogo/profesionales/17/agenda").with(jwt())).andExpect(status().isOk())
+   .andExpect(jsonPath("$.categoriaHabilitada").value(false));
+  mvc.perform(get("/api/catalogo/profesionales/999/agenda").with(jwt())).andExpect(status().isNotFound());
+ }
 }

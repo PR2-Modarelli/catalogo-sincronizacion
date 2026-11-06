@@ -19,4 +19,5 @@ public class ConsultaCatalogoResource {
   return consulta.buscar(nombre,categoriaId,habilitado,conAgenda,diaSemana,pagina,tamanio);
  }
  @GetMapping("/profesionales/{id}/horarios") public List<HorarioVista> horarios(@PathVariable Long id) {return consulta.horarios(id);}
+ @GetMapping("/profesionales/{id}/agenda") public AgendaVista agenda(@PathVariable Long id) {return consulta.agenda(id);}
 }

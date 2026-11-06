@@ -72,4 +72,11 @@ public class ConsultaCatalogoServicio {
   return horarios.findByProfesionalIdOrderByDiaSemanaAscHoraInicioAsc(profesionalId).stream()
    .map(h->new HorarioVista(h.getId(),h.getProfesional().getId(),h.getDiaSemana(),h.getHoraInicio(),h.getHoraFin(),h.getDuracionTurnoMinutos(),h.isHabilitado())).toList();
  }
+ public record AgendaVista(Long version, ProfesionalVista profesional, boolean categoriaHabilitada, List<HorarioVista> horarios) {}
+ public AgendaVista agenda(Long id) {
+  exigirInicializado();
+  Profesional p=profesionales.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Profesional inexistente"));
+  ProfesionalVista vista=new ProfesionalVista(p.getId(),p.getNombre(),p.getApellido(),p.getCategoria().getId(),p.getCategoria().getNombre(),p.isHabilitado());
+  return new AgendaVista(estados.findById(1L).orElseThrow().getVersion(),vista,p.getCategoria().isHabilitada(),horarios(id));
+ }
 }
