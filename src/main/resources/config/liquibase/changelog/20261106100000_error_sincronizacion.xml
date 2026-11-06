@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+ <changeSet id="20261106100000-1" author="modarelli">
+  <addColumn tableName="estado_catalogo"><column name="ultimo_error" type="varchar(80)"/></addColumn>
+ </changeSet>
+</databaseChangeLog>

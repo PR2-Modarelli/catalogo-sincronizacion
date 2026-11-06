@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest(
+    properties = {"catalogo.sync.enabled=false"},
     classes = {
         CatalogoApp.class,
         AsyncSyncConfiguration.class,

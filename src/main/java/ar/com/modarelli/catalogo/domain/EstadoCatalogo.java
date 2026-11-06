@@ -11,6 +11,10 @@ public class EstadoCatalogo {
     private Long version;
     @Column(name="sincronizado_en")
     private Instant sincronizadoEn;
+    @Column(name="ultimo_error", length=80)
+    private String ultimoError;
+    public String getUltimoError() { return ultimoError; }
+    public void setUltimoError(String value) { ultimoError = value; }
     public EstadoCatalogo() {}
     public Long getId() { return id; }
     public void setId(Long value) { this.id = value; }

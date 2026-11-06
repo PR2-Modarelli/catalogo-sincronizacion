@@ -31,6 +31,35 @@ public class PersistenciaIncrementalServicio {
             return estado.getVersion();
         }
         if (!Objects.equals(estado.getVersion(),cambio.versionBase())) throw new ConcurrentModificationException("La version local no coincide con la base del cambio");
+        return guardar(cambio,evento,estado);
+    }
+    @Transactional
+    public Long aplicarRango(List<CambioCatalogo> cambios, EventoCatalogo evento) {
+        if (cambios==null || cambios.isEmpty() || cambios.getFirst()==null) throw new IllegalArgumentException("Rango vacio");
+        Long base=cambios.getFirst().versionBase();
+        Long siguiente=base;
+        Map<Long,CategoriaDato> cs=new LinkedHashMap<>();
+        Map<Long,ProfesionalDato> ps=new LinkedHashMap<>();
+        Map<Long,HorarioDato> hs=new LinkedHashMap<>();
+        for (var cambio:cambios) {
+            validarCambio(cambio);
+            if (!Objects.equals(cambio.versionBase(),siguiente)) throw new IllegalArgumentException("Rango discontinuo");
+            siguiente=cambio.versionDestino();
+            for (var c:cambio.categorias()) cs.put(c.id(),c);
+            for (var p:cambio.profesionales()) ps.put(p.id(),p);
+            for (var h:cambio.horarios()) hs.put(h.id(),h);
+        }
+        if (evento!=null) {
+            evento.validar();
+            if (evento.newVersion()>siguiente) throw new IllegalArgumentException("Evento posterior al rango");
+        }
+        EstadoCatalogo estado=estados.bloquear();
+        if (procesado(evento)) return estado.getVersion();
+        if (!Objects.equals(estado.getVersion(),base)) throw new ConcurrentModificationException("La version local cambio");
+        // Redis publica entidades vigentes. Solo el estado final del rango queda visible al hacer commit.
+        return guardar(new CambioCatalogo(base,siguiente,List.copyOf(cs.values()),List.copyOf(ps.values()),List.copyOf(hs.values())),evento,estado);
+    }
+    private Long guardar(CambioCatalogo cambio, EventoCatalogo evento, EstadoCatalogo estado) {
         var cs=new LinkedHashMap<Long,CategoriaDato>();
         for (var c:categorias.findAll()) cs.put(c.getId(),new CategoriaDato(c.getId(),c.getNombre(),c.getDescripcion(),c.isHabilitada(),c.getFechaCreacion(),c.getFechaActualizacion()));
         var ps=new LinkedHashMap<Long,ProfesionalDato>();
@@ -61,17 +90,50 @@ public class PersistenciaIncrementalServicio {
             v.setHabilitado(h.enabled()); v.setFechaCreacion(h.createdAt()); v.setFechaActualizacion(h.updatedAt()); horarios.save(v);
         }
         horarios.flush();
-        estado.setVersion(cambio.versionDestino()); estado.setSincronizadoEn(Instant.now());
-        eventos.saveAndFlush(new EventoCatalogoProcesado(evento.eventId(),evento.newVersion()));
+        estado.setVersion(cambio.versionDestino()); estado.setSincronizadoEn(Instant.now()); estado.setUltimoError(null);
+        registrar(estado,evento);
         estados.saveAndFlush(estado);
         return estado.getVersion();
     }
+    @Transactional(readOnly=true)
+    public Long version() {return estados.findById(1L).orElseThrow().getVersion();}
+    @Transactional(readOnly=true)
+    public boolean procesado(EventoCatalogo evento) {
+        if (evento==null) return false;
+        return eventos.findById(evento.eventId()).map(e -> {
+            if (!e.getVersion().equals(evento.newVersion())) throw new IllegalArgumentException("eventId reutilizado con otra version");
+            return true;
+        }).orElse(false);
+    }
+    @Transactional
+    public Long confirmar(EventoCatalogo evento) {
+        EstadoCatalogo estado=estados.bloquear();
+        registrar(estado,evento); estado.setUltimoError(null); return estado.getVersion();
+    }
+    @Transactional
+    public Long recuperar(SnapshotCatalogo snapshot, EventoCatalogo evento,long minimo,SnapshotCatalogoServicio servicio) {
+        EstadoCatalogo estado=estados.bloquear();
+        if (snapshot==null || snapshot.snapshotVersion()==null || snapshot.snapshotVersion()<minimo) throw new IllegalStateException("Snapshot aun no publicado");
+        if (estado.getVersion()==null || estado.getVersion()<=snapshot.snapshotVersion()) servicio.aplicar(snapshot);
+        registrar(estado,evento); estado.setUltimoError(null); return estado.getVersion();
+    }
+    private void registrar(EstadoCatalogo estado,EventoCatalogo evento) {
+        if (evento==null) return;
+        evento.validar();
+        if (estado.getVersion()==null || estado.getVersion()<evento.newVersion()) throw new IllegalStateException("Evento no aplicado");
+        if (!procesado(evento)) eventos.saveAndFlush(new EventoCatalogoProcesado(evento.eventId(),evento.newVersion()));
+    }
+    @Transactional(propagation=Propagation.REQUIRES_NEW)
+    public void registrarError() {estados.bloquear().setUltimoError("SINCRONIZACION_NO_DISPONIBLE");}
     private void validarCabecera(CambioCatalogo cambio,EventoCatalogo evento) {
         if (evento==null) throw new IllegalArgumentException("Falta el evento");
         evento.validar();
+        if (cambio==null || !Objects.equals(cambio.versionDestino(),evento.newVersion())) throw new IllegalArgumentException("Version de evento distinta");
+        validarCambio(cambio);
+    }
+    private void validarCambio(CambioCatalogo cambio) {
         if (cambio==null || cambio.versionBase()==null || cambio.versionDestino()==null || cambio.versionBase()<0
             || cambio.versionBase()==Long.MAX_VALUE || cambio.versionDestino()!=cambio.versionBase()+1
-            || !cambio.versionDestino().equals(evento.newVersion())
             || cambio.categorias()==null || cambio.profesionales()==null || cambio.horarios()==null) {
             throw new IllegalArgumentException("Cambio de catalogo invalido o no consecutivo");
         }

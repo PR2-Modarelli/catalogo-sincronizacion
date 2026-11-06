@@ -103,6 +103,8 @@ class CatalogoPersistenciaIT {
  }
  @Test void endpointsExigenIdentidadYAdministracion() throws Exception {
   mvc.perform(get("/api/catalogo/estado")).andExpect(status().isUnauthorized());
+  mvc.perform(post("/api/admin/catalogo/sincronizacion-incremental")).andExpect(status().isUnauthorized());
+  mvc.perform(post("/api/admin/catalogo/sincronizacion-incremental").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))).andExpect(status().isForbidden());
   mvc.perform(post("/api/admin/catalogo/sincronizacion-completa").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))).andExpect(status().isForbidden());
   mvc.perform(get("/api/catalogo/profesionales").with(jwt())).andExpect(status().isServiceUnavailable());
   sincronizacion.aplicar(snapshot(7));

@@ -23,11 +23,11 @@ public class ConsultaCatalogoServicio {
  public record ProfesionalVista(Long id,String nombre,String apellido,Long categoriaId,String categoria,boolean habilitado) {}
  public record HorarioVista(Long id,Long profesionalId,DayOfWeek diaSemana,LocalTime horaInicio,LocalTime horaFin,int duracionTurnoMinutos,boolean habilitado) {}
  public record CategoriaVista(Long id,String nombre,String descripcion,boolean habilitada) {}
- public record EstadoVista(Long version,Instant sincronizadoEn,boolean inicializado,long categorias,long profesionales,long horarios) {}
+ public record EstadoVista(Long version,Instant sincronizadoEn,boolean inicializado,long categorias,long profesionales,long horarios,String ultimoError) {}
  public record PaginaProfesionales(List<ProfesionalVista> contenido,long total,int pagina,int tamanio) {}
  public EstadoVista estado() {
   EstadoCatalogo e=estados.findById(1L).orElseThrow();
-  return new EstadoVista(e.getVersion(),e.getSincronizadoEn(),e.getVersion()!=null,categorias.count(),profesionales.count(),horarios.count());
+  return new EstadoVista(e.getVersion(),e.getSincronizadoEn(),e.getVersion()!=null,categorias.count(),profesionales.count(),horarios.count(),e.getUltimoError());
  }
  private void exigirInicializado() {
   if(estados.findById(1L).orElseThrow().getVersion()==null)

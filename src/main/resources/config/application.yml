@@ -226,3 +226,17 @@ jhipster:
 # ===================================================================
 
 # application:
+
+catalogo:
+  sync:
+    enabled: ${CATALOGO_SYNC_ENABLED:false}
+    interval-ms: ${CATALOGO_SYNC_INTERVAL_MS:60000}
+  redis:
+    host: ${CATALOGO_REDIS_HOST:}
+    port: ${CATALOGO_REDIS_PORT:6379}
+    username: ${CATALOGO_REDIS_USERNAME:}
+    password: ${CATALOGO_REDIS_PASSWORD:}
+  kafka:
+    bootstrap-servers: ${CATALOGO_KAFKA_BOOTSTRAP_SERVERS:}
+    topic: ${CATALOGO_KAFKA_CATALOG_TOPIC:}
+    group-id: ${CATALOGO_KAFKA_CONSUMER_GROUP:}

@@ -49,7 +49,7 @@ public class SnapshotCatalogoServicio {
    h.setFechaCreacion(d.createdAt()); h.setFechaActualizacion(d.updatedAt()); horarios.save(h);
   }
   horarios.flush();
-  estado.setVersion(snapshot.snapshotVersion()); estado.setSincronizadoEn(Instant.now()); estados.saveAndFlush(estado);
+  estado.setUltimoError(null); estado.setVersion(snapshot.snapshotVersion()); estado.setSincronizadoEn(Instant.now()); estados.saveAndFlush(estado);
   return estado.getVersion();
  }
  private static void exigir(boolean condicion) {

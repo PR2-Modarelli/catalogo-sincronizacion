@@ -6,7 +6,7 @@ Todos los endpoints listados exigen un JWT propio de la aplicación válido. El 
 
 ### GET /api/catalogo/estado
 
-Devuelve version (null antes de inicializar), sincronizadoEn, inicializado y cantidades de categorias, profesionales y horarios. La lectura usa una transacción con aislamiento REPEATABLE_READ para no mezclar datos de dos snapshots.
+Devuelve version (null antes de inicializar), sincronizadoEn, inicializado y cantidades de categorias, profesionales y horarios. Incluye `ultimoError`, nulo si la última revisión terminó correctamente o un código estable sin detalles externos cuando falla. La lectura usa una transacción con aislamiento REPEATABLE_READ para no mezclar datos de dos snapshots.
 
 ### GET /api/catalogo/categorias
 
@@ -63,14 +63,14 @@ Errores inesperados de persistencia se propagan como error del servidor y revier
 
 ## Propiedad de datos
 
-Las tablas categoria, profesional, horario_semanal y estado_catalogo pertenecen exclusivamente a este servicio. El backend de turnos deberá usar sus APIs; no leer estas tablas ni crear una réplica de búsqueda propia.
+Las tablas categoria, profesional, horario_semanal, estado_catalogo y evento_catalogo_procesado pertenecen exclusivamente a este servicio. El backend de turnos deberá usar sus APIs; no leer estas tablas ni crear una réplica de búsqueda propia.
 
 Los IDs de catálogo son asignados por la cátedra. Las fechas de creación y actualización vienen del snapshot; sincronizadoEn registra la aplicación local. No se crean categorías, profesionales ni horarios mediante endpoints públicos de escritura.
 
 
 ## Aplicación de una versión incremental
 
-`PersistenciaIncrementalServicio.aplicar(CambioCatalogo, EventoCatalogo)` recibe las entidades afectadas de una única versión. Es una operación interna; este bloque todavía no conecta Redis ni Kafka ni agrega una API pública para inyectar eventos.
+`PersistenciaIncrementalServicio.aplicar(CambioCatalogo, EventoCatalogo)` recibe las entidades afectadas de una única versión. Es una operación interna; el coordinador la complementa con aplicación de rangos leídos desde Redis. No hay una API pública para inyectar entidades o eventos.
 
 - Requiere un snapshot inicial y que la versión base coincida con la persistida. Solo admite avanzar a la versión consecutiva.
 - Valida el evento `CatalogUpdated`, esquema 1, y la coincidencia entre la versión del evento y la del cambio.
@@ -80,4 +80,10 @@ Los IDs de catálogo son asignados por la cátedra. Las fechas de creación y ac
 - El mismo `eventId` y versión ya procesados no vuelven a producir efectos. Reutilizar el identificador para otra versión se rechaza.
 - Si una escritura falla, la transacción revierte y el evento queda disponible para un reintento. Un salto de versión se rechaza sin modificar la copia local.
 
-La lectura de Redis, el consumidor Kafka, la confirmación del offset y la recuperación automática ante huecos se incorporarán al coordinador de sincronización. No se deben confirmar mensajes Kafka antes de que termine correctamente esta operación transaccional.
+El coordinador compara versiones al iniciar y periódicamente, y responde a `CatalogUpdated`. La lectura Redis verifica metadata antes y después del rango; solo el resultado final se publica al confirmar la transacción. Kafka confirma el offset después de terminar correctamente la aplicación.
+
+### POST /api/admin/catalogo/sincronizacion-incremental
+
+Sin body. Requiere JWT válido y ROLE_ADMIN. Revisa Redis y aplica cambios pendientes o reconstruye desde snapshot cuando corresponde. Devuelve `{"version":9}` con la versión local alcanzada; una revisión sin cambios también es exitosa. Si la integración está desactivada o falla, devuelve 503 y conserva los datos aplicados. El detalle de errores externos no se propaga.
+
+Ver [estrategia de sincronización](SINCRONIZACION_CATALOGO.md) para orden, idempotencia y recuperación.
