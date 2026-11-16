@@ -7,8 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import ar.com.modarelli.catalogo.IntegrationTest;
-import java.util.HashMap;
-import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -25,31 +24,37 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.MimeTypeUtils;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @IntegrationTest
 @AutoConfigureMockMvc
 @WithMockUser
 @ImportAutoConfiguration(TestChannelBinderConfiguration.class)
-@ActiveProfiles({ "kafka" })
+@ActiveProfiles({"kafka"})
+@org.springframework.test.context.TestPropertySource(
+        properties = "spring.cloud.stream.enabled=true")
 class CatalogoKafkaResourceIT {
 
-    @Autowired
-    private MockMvc restMockMvc;
+    @Autowired private MockMvc restMockMvc;
 
-    @Autowired
-    private InputDestination input;
+    @Autowired private InputDestination input;
 
-    @Autowired
-    private OutputDestination output;
+    @Autowired private OutputDestination output;
 
     @Test
     void producesMessages() throws Exception {
-        restMockMvc.perform(post("/api/catalogo-kafka/publish?message=value-produce")).andExpect(status().isOk());
-        assertThat(output.receive(1000, "binding-out-0").getPayload()).isEqualTo("value-produce".getBytes());
+        restMockMvc
+                .perform(post("/api/catalogo-kafka/publish?message=value-produce"))
+                .andExpect(status().isOk());
+        assertThat(output.receive(1000, "binding-out-0").getPayload())
+                .isEqualTo("value-produce".getBytes());
     }
 
     @Test
     void producesPooledMessages() throws Exception {
-        assertThat(output.receive(1500, "kafkaProducer-out-0").getPayload()).isEqualTo("kafka_producer".getBytes());
+        assertThat(output.receive(1500, "kafkaProducer-out-0").getPayload())
+                .isEqualTo("kafka_producer".getBytes());
     }
 
     @Test
@@ -58,11 +63,12 @@ class CatalogoKafkaResourceIT {
         map.put(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE);
         MessageHeaders headers = new MessageHeaders(map);
         Message<String> testMessage = new GenericMessage<>("value-consume", headers);
-        MvcResult mvcResult = restMockMvc
-            .perform(get("/api/catalogo-kafka/register"))
-            .andExpect(status().isOk())
-            .andExpect(request().asyncStarted())
-            .andReturn();
+        MvcResult mvcResult =
+                restMockMvc
+                        .perform(get("/api/catalogo-kafka/register"))
+                        .andExpect(status().isOk())
+                        .andExpect(request().asyncStarted())
+                        .andReturn();
         for (int i = 0; i < 100; i++) {
             input.send(testMessage);
             Thread.sleep(100);

@@ -1,6 +1,7 @@
 package ar.com.modarelli.catalogo.security.jwt;
 
 import static ar.com.modarelli.catalogo.security.jwt.JwtAuthenticationTestUtils.*;
+
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -15,8 +16,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 @AuthenticationIntegrationTest
 class TokenAuthenticationIT {
 
-    @Autowired
-    private MockMvc mvc;
+    @Autowired private MockMvc mvc;
 
     @Value("${jhipster.security.authentication.jwt.base64-secret}")
     private String jwtKey;
@@ -42,14 +42,16 @@ class TokenAuthenticationIT {
     }
 
     private void expectOk(String token) throws Exception {
-        mvc.perform(MockMvcRequestBuilders.get("/api/authenticate").header(AUTHORIZATION, BEARER + token)).andExpect(
-            status().isNoContent()
-        );
+        mvc.perform(
+                        MockMvcRequestBuilders.get("/api/authenticate")
+                                .header(AUTHORIZATION, BEARER + token))
+                .andExpect(status().isNoContent());
     }
 
     private void expectUnauthorized(String token) throws Exception {
-        mvc.perform(MockMvcRequestBuilders.get("/api/authenticate").header(AUTHORIZATION, BEARER + token)).andExpect(
-            status().isUnauthorized()
-        );
+        mvc.perform(
+                        MockMvcRequestBuilders.get("/api/authenticate")
+                                .header(AUTHORIZATION, BEARER + token))
+                .andExpect(status().isUnauthorized());
     }
 }

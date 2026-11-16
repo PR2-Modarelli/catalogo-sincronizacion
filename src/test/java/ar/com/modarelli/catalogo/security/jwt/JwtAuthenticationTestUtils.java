@@ -1,18 +1,15 @@
 package ar.com.modarelli.catalogo.security.jwt;
 
-import static ar.com.modarelli.catalogo.security.AuthoritiesConstants.ADMIN;
-import static ar.com.modarelli.catalogo.security.SecurityUtils.AUTHORITIES_CLAIM;
-import static ar.com.modarelli.catalogo.security.SecurityUtils.JWT_ALGORITHM;
+import static ar.com.modarelli.catalogo.infrastructure.security.AuthoritiesConstants.ADMIN;
+import static ar.com.modarelli.catalogo.infrastructure.security.SecurityUtils.AUTHORITIES_CLAIM;
+import static ar.com.modarelli.catalogo.infrastructure.security.SecurityUtils.JWT_ALGORITHM;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.util.Base64;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.time.Instant;
-import java.util.List;
-import javax.crypto.Mac;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -20,6 +17,13 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+
+import java.time.Instant;
+import java.util.List;
+
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class JwtAuthenticationTestUtils {
 
@@ -44,24 +48,28 @@ public class JwtAuthenticationTestUtils {
 
         var now = Instant.now();
 
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-            .issuedAt(now)
-            .expiresAt(now.plusSeconds(60))
-            .subject(user)
-            .claims(customClaim -> customClaim.put(AUTHORITIES_CLAIM, List.of(ADMIN)))
-            .build();
+        JwtClaimsSet claims =
+                JwtClaimsSet.builder()
+                        .issuedAt(now)
+                        .expiresAt(now.plusSeconds(60))
+                        .subject(user)
+                        .claims(customClaim -> customClaim.put(AUTHORITIES_CLAIM, List.of(ADMIN)))
+                        .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
         return encoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
     }
 
     public static String createTokenWithDifferentSignature() {
-        JwtEncoder encoder = jwtEncoder("Xfd54a45s65fds737b9aafcb3412e07ed99b267f33413274720ddbb7f6c5e64e9f14075f2d7ed041592f0b7657baf8");
+        JwtEncoder encoder =
+                jwtEncoder(
+                        "Xfd54a45s65fds737b9aafcb3412e07ed99b267f33413274720ddbb7f6c5e64e9f14075f2d7ed041592f0b7657baf8");
 
         var now = Instant.now();
         var past = now.plusSeconds(60);
 
-        JwtClaimsSet claims = JwtClaimsSet.builder().issuedAt(now).expiresAt(past).subject("anonymous").build();
+        JwtClaimsSet claims =
+                JwtClaimsSet.builder().issuedAt(now).expiresAt(past).subject("anonymous").build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
         return encoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
@@ -73,7 +81,12 @@ public class JwtAuthenticationTestUtils {
         var now = Instant.now();
         var past = now.minusSeconds(600);
 
-        JwtClaimsSet claims = JwtClaimsSet.builder().issuedAt(past).expiresAt(past.plusSeconds(1)).subject("anonymous").build();
+        JwtClaimsSet claims =
+                JwtClaimsSet.builder()
+                        .issuedAt(past)
+                        .expiresAt(past.plusSeconds(1))
+                        .subject("anonymous")
+                        .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
         return encoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();

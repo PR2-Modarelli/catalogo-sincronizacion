@@ -1,38 +1,65 @@
 package ar.com.modarelli.catalogo;
 
-import static com.tngtech.archunit.base.DescribedPredicate.alwaysTrue;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.belongToAnyOf;
-import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
 
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
-import com.tngtech.archunit.junit.AnalyzeClasses;
-import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.junit.*;
 import com.tngtech.archunit.lang.ArchRule;
 
-@AnalyzeClasses(packagesOf = CatalogoApp.class, importOptions = DoNotIncludeTests.class)
+@AnalyzeClasses(packages = "ar.com.modarelli.catalogo", importOptions = DoNotIncludeTests.class)
 class TechnicalStructureTest {
-
-    // prettier-ignore
     @ArchTest
-    static final ArchRule respectsTechnicalArchitectureLayers = layeredArchitecture()
-        .consideringAllDependencies()
-        .layer("Config").definedBy("..config..")
-        .layer("Web").definedBy("..web..")
-        .optionalLayer("Service").definedBy("..service..")
-        .layer("Security").definedBy("..security..")
-        .optionalLayer("Persistence").definedBy("..repository..")
-        .layer("Domain").definedBy("..domain..")
+    static final ArchRule dominioIndependiente =
+            noClasses()
+                    .that()
+                    .resideInAPackage("..domain..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage(
+                            "..application..",
+                            "..infrastructure..",
+                            "org.springframework..",
+                            "jakarta..",
+                            "tools.jackson..",
+                            "com.fasterxml..",
+                            "java.sql..");
 
-        .whereLayer("Config").mayNotBeAccessedByAnyLayer()
-        .whereLayer("Web").mayOnlyBeAccessedByLayers("Config")
-        .whereLayer("Service").mayOnlyBeAccessedByLayers("Web", "Config")
-        .whereLayer("Security").mayOnlyBeAccessedByLayers("Config", "Service", "Web")
-        .whereLayer("Persistence").mayOnlyBeAccessedByLayers("Service", "Security", "Web", "Config")
-        .whereLayer("Domain").mayOnlyBeAccessedByLayers("Persistence", "Service", "Security", "Web", "Config")
+    @ArchTest
+    static final ArchRule aplicacionUsaPuertos =
+            noClasses()
+                    .that()
+                    .resideInAPackage("..application..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage(
+                            "..infrastructure..",
+                            "org.springframework.jdbc..",
+                            "org.springframework.data..",
+                            "org.springframework.security..",
+                            "org.springframework.web..",
+                            "org.springframework.http..",
+                            "jakarta.persistence..",
+                            "tools.jackson..",
+                            "com.fasterxml..",
+                            "java.sql..");
 
-        .ignoreDependency(belongToAnyOf(CatalogoApp.class), alwaysTrue())
-        .ignoreDependency(alwaysTrue(), belongToAnyOf(
-            ar.com.modarelli.catalogo.config.Constants.class,
-            ar.com.modarelli.catalogo.config.ApplicationProperties.class
-        ));
+    @ArchTest
+    static final ArchRule entradaUsaCasosDeUso =
+            noClasses()
+                    .that()
+                    .resideInAnyPackage(
+                            "..infrastructure.web.controller..", "..infrastructure.scheduling..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAPackage("..application..");
+
+    @ArchTest
+    static final ArchRule puertosSonInterfaces =
+            classes()
+                    .that()
+                    .resideInAnyPackage("..domain.ports.in..", "..domain.ports.out..")
+                    .and()
+                    .areTopLevelClasses()
+                    .should()
+                    .beInterfaces();
 }

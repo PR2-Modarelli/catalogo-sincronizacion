@@ -2,9 +2,9 @@ package ar.com.modarelli.catalogo.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import ar.com.modarelli.catalogo.infrastructure.security.AuthoritiesConstants;
+import ar.com.modarelli.catalogo.infrastructure.security.SecurityUtils;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,9 +15,11 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-/**
- * Test class for the {@link SecurityUtils} utility class.
- */
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+/** Test class for the {@link SecurityUtils} utility class. */
 class SecurityUtilsUnitTest {
 
     @BeforeEach
@@ -29,7 +31,8 @@ class SecurityUtilsUnitTest {
     @Test
     void testGetCurrentUserLogin() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
+        securityContext.setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", "admin"));
         SecurityContextHolder.setContext(securityContext);
         Optional<String> login = SecurityUtils.getCurrentUserLogin();
         assertThat(login).contains("admin");
@@ -39,7 +42,8 @@ class SecurityUtilsUnitTest {
     void testGetCurrentUserLoginForAnonymousUser() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.ANONYMOUS));
-        securityContext.setAuthentication(new AnonymousAuthenticationToken("key", "anonymousUser", authorities));
+        securityContext.setAuthentication(
+                new AnonymousAuthenticationToken("key", "anonymousUser", authorities));
         SecurityContextHolder.setContext(securityContext);
         Optional<String> login = SecurityUtils.getCurrentUserLogin();
         assertThat(login).isEmpty();
@@ -48,7 +52,8 @@ class SecurityUtilsUnitTest {
     @Test
     void testGetCurrentUserJWT() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("admin", "token"));
+        securityContext.setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", "token"));
         SecurityContextHolder.setContext(securityContext);
         Optional<String> jwt = SecurityUtils.getCurrentUserJWT();
         assertThat(jwt).contains("token");
@@ -58,7 +63,12 @@ class SecurityUtilsUnitTest {
     void testGetCurrentUserJWTFromJwtCredentials() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         var now = Instant.now();
-        var jwt = Jwt.withTokenValue("token").issuedAt(now).expiresAt(now.plusSeconds(60)).header("Test", "test").build();
+        var jwt =
+                Jwt.withTokenValue("token")
+                        .issuedAt(now)
+                        .expiresAt(now.plusSeconds(60))
+                        .header("Test", "test")
+                        .build();
         securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("admin", jwt));
         SecurityContextHolder.setContext(securityContext);
         Optional<String> currentUserJwt = SecurityUtils.getCurrentUserJWT();
@@ -68,7 +78,8 @@ class SecurityUtilsUnitTest {
     @Test
     void testIsAuthenticated() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
+        securityContext.setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", "admin"));
         SecurityContextHolder.setContext(securityContext);
         boolean isAuthenticated = SecurityUtils.isAuthenticated();
         assertThat(isAuthenticated).isTrue();
@@ -78,7 +89,8 @@ class SecurityUtilsUnitTest {
     void testAnonymousIsNotAuthenticated() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.ANONYMOUS));
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
+        securityContext.setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
         SecurityContextHolder.setContext(securityContext);
         boolean isAuthenticated = SecurityUtils.isAuthenticated();
         assertThat(isAuthenticated).isFalse();
@@ -88,7 +100,8 @@ class SecurityUtilsUnitTest {
     void testHasCurrentUserThisAuthority() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.USER));
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
+        securityContext.setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
         SecurityContextHolder.setContext(securityContext);
 
         assertThat(SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.USER)).isTrue();
@@ -99,21 +112,35 @@ class SecurityUtilsUnitTest {
     void testHasCurrentUserAnyOfAuthorities() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.USER));
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
+        securityContext.setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
         SecurityContextHolder.setContext(securityContext);
 
-        assertThat(SecurityUtils.hasCurrentUserAnyOfAuthorities(AuthoritiesConstants.USER, AuthoritiesConstants.ADMIN)).isTrue();
-        assertThat(SecurityUtils.hasCurrentUserAnyOfAuthorities(AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.ADMIN)).isFalse();
+        assertThat(
+                        SecurityUtils.hasCurrentUserAnyOfAuthorities(
+                                AuthoritiesConstants.USER, AuthoritiesConstants.ADMIN))
+                .isTrue();
+        assertThat(
+                        SecurityUtils.hasCurrentUserAnyOfAuthorities(
+                                AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.ADMIN))
+                .isFalse();
     }
 
     @Test
     void testHasCurrentUserNoneOfAuthorities() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.USER));
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
+        securityContext.setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
         SecurityContextHolder.setContext(securityContext);
 
-        assertThat(SecurityUtils.hasCurrentUserNoneOfAuthorities(AuthoritiesConstants.USER, AuthoritiesConstants.ADMIN)).isFalse();
-        assertThat(SecurityUtils.hasCurrentUserNoneOfAuthorities(AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.ADMIN)).isTrue();
+        assertThat(
+                        SecurityUtils.hasCurrentUserNoneOfAuthorities(
+                                AuthoritiesConstants.USER, AuthoritiesConstants.ADMIN))
+                .isFalse();
+        assertThat(
+                        SecurityUtils.hasCurrentUserNoneOfAuthorities(
+                                AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.ADMIN))
+                .isTrue();
     }
 }

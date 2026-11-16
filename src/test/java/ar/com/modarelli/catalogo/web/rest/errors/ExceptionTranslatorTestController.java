@@ -2,6 +2,7 @@ package ar.com.modarelli.catalogo.web.rest.errors;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -54,8 +55,7 @@ public class ExceptionTranslatorTestController {
 
     public static class TestDTO {
 
-        @NotNull
-        private String test;
+        @NotNull private String test;
 
         public String getTest() {
             return test;

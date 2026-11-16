@@ -1,16 +1,19 @@
 package ar.com.modarelli.catalogo.config;
 
 import ar.com.modarelli.catalogo.IntegrationTest;
-import java.util.Comparator;
+
 import org.junit.jupiter.api.ClassDescriptor;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.ClassOrdererContext;
+
+import java.util.Comparator;
 
 public class SpringBootTestClassOrderer implements ClassOrderer {
 
     @Override
     public void orderClasses(ClassOrdererContext context) {
-        context.getClassDescriptors().sort(Comparator.comparingInt(SpringBootTestClassOrderer::getOrder));
+        context.getClassDescriptors()
+                .sort(Comparator.comparingInt(SpringBootTestClassOrderer::getOrder));
     }
 
     private static int getOrder(ClassDescriptor classDescriptor) {

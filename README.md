@@ -132,3 +132,7 @@ bash scripts/verificar-catalogo.sh
 ```
 
 Las pruebas usan contenedores y credenciales de prueba; no requieren la conexión con la cátedra. Las pruebas de rollback y de fallo del consumidor generan errores intencionales en los logs. El resultado válido es cero fallos y cero errores en el resumen final.
+
+## Organización del código
+
+El servicio utiliza puertos y adaptadores, con `domain`, `application` e `infrastructure`, siguiendo el ejemplo de la cátedra. Ver [arquitectura y recorrido de los casos de uso](docs/ARQUITECTURA.md). Las reglas de arquitectura se verifican con ArchUnit.

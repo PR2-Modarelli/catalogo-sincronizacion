@@ -3,10 +3,9 @@ package ar.com.modarelli.catalogo.config.timezone;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ar.com.modarelli.catalogo.IntegrationTest;
-import ar.com.modarelli.catalogo.repository.timezone.DateTimeWrapper;
-import ar.com.modarelli.catalogo.repository.timezone.DateTimeWrapperRepository;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
+import ar.com.modarelli.catalogo.infrastructure.persistence.repository.timezone.DateTimeWrapper;
+import ar.com.modarelli.catalogo.infrastructure.persistence.repository.timezone.DateTimeWrapperRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,23 +14,25 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+
 /**
- * Integration tests for verifying the behavior of Hibernate in the context of storing various date and time types across different databases.
- * The tests focus on ensuring that the stored values are correctly transformed and stored according to the configured timezone.
- * Timezone is environment specific, and can be adjusted according to your needs.
+ * Integration tests for verifying the behavior of Hibernate in the context of storing various date
+ * and time types across different databases. The tests focus on ensuring that the stored values are
+ * correctly transformed and stored according to the configured timezone. Timezone is environment
+ * specific, and can be adjusted according to your needs.
  *
- * For more context, refer to:
- * - GitHub Issue: https://github.com/jhipster/generator-jhipster/issues/22579
- * - Pull Request: https://github.com/jhipster/generator-jhipster/pull/22946
+ * <p>For more context, refer to: - GitHub Issue:
+ * https://github.com/jhipster/generator-jhipster/issues/22579 - Pull Request:
+ * https://github.com/jhipster/generator-jhipster/pull/22946
  */
 @IntegrationTest
 class HibernateTimeZoneIT {
 
-    @Autowired
-    private DateTimeWrapperRepository dateTimeWrapperRepository;
+    @Autowired private DateTimeWrapperRepository dateTimeWrapperRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Value("${spring.jpa.properties.hibernate.jdbc.time_zone:UTC}")
     private String zoneId;
@@ -53,7 +54,8 @@ class HibernateTimeZoneIT {
         dateTimeWrapper.setOffsetTime(OffsetTime.parse("14:00:00+02:00"));
         dateTimeWrapper.setLocalDate(LocalDate.parse("2016-09-10"));
 
-        dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S").withZone(ZoneId.of(zoneId));
+        dateTimeFormatter =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S").withZone(ZoneId.of(zoneId));
         timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.of(zoneId));
         offsetTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
         dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -78,7 +80,11 @@ class HibernateTimeZoneIT {
 
         String request = generateSqlRequest("local_date_time", dateTimeWrapper.getId());
         SqlRowSet resultSet = jdbcTemplate.queryForRowSet(request);
-        String expectedValue = dateTimeWrapper.getLocalDateTime().atZone(ZoneId.systemDefault()).format(dateTimeFormatter);
+        String expectedValue =
+                dateTimeWrapper
+                        .getLocalDateTime()
+                        .atZone(ZoneId.systemDefault())
+                        .format(dateTimeFormatter);
 
         assertThatValueFromSqlRowSetIsEqualToExpectedValue(resultSet, expectedValue);
     }
@@ -109,37 +115,46 @@ class HibernateTimeZoneIT {
 
     @Test
     @Transactional
-    void storeLocalTimeWithZoneIdConfigShouldBeStoredOnConfiguredTimeZoneAccordingToHis1stJan1970Value() {
+    void
+            storeLocalTimeWithZoneIdConfigShouldBeStoredOnConfiguredTimeZoneAccordingToHis1stJan1970Value() {
         dateTimeWrapperRepository.saveAndFlush(dateTimeWrapper);
 
         String request = generateSqlRequest("local_time", dateTimeWrapper.getId());
         SqlRowSet resultSet = jdbcTemplate.queryForRowSet(request);
-        String expectedValue = dateTimeWrapper
-            .getLocalTime()
-            .atDate(LocalDate.of(1970, Month.JANUARY, 1))
-            .atZone(ZoneId.systemDefault())
-            .format(timeFormatter);
+        String expectedValue =
+                dateTimeWrapper
+                        .getLocalTime()
+                        .atDate(LocalDate.of(1970, Month.JANUARY, 1))
+                        .atZone(ZoneId.systemDefault())
+                        .format(timeFormatter);
 
         assertThatValueFromSqlRowSetIsEqualToExpectedValue(resultSet, expectedValue);
     }
 
     @Test
     @Transactional
-    void storeOffsetTimeWithZoneIdConfigShouldBeStoredOnConfiguredTimeZoneAccordingToHis1stJan1970Value() {
+    void
+            storeOffsetTimeWithZoneIdConfigShouldBeStoredOnConfiguredTimeZoneAccordingToHis1stJan1970Value() {
         dateTimeWrapperRepository.saveAndFlush(dateTimeWrapper);
 
         String request = generateSqlRequest("offset_time", dateTimeWrapper.getId());
         SqlRowSet resultSet = jdbcTemplate.queryForRowSet(request);
-        String expectedValue = dateTimeWrapper
-            .getOffsetTime()
-            // Convert to configured timezone
-            .withOffsetSameInstant(ZoneId.of(zoneId).getRules().getOffset(Instant.now()))
-            // Normalize to System TimeZone.
-            // this behavior looks a bug, refer to https://github.com/jhipster/generator-jhipster/issues/22579.
-            .withOffsetSameLocal(OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault()).getOffset())
-            // Convert the normalized value to configured timezone
-            .withOffsetSameInstant(ZoneId.of(zoneId).getRules().getOffset(Instant.EPOCH))
-            .format(offsetTimeFormatter);
+        String expectedValue =
+                dateTimeWrapper
+                        .getOffsetTime()
+                        // Convert to configured timezone
+                        .withOffsetSameInstant(
+                                ZoneId.of(zoneId).getRules().getOffset(Instant.now()))
+                        // Normalize to System TimeZone.
+                        // this behavior looks a bug, refer to
+                        // https://github.com/jhipster/generator-jhipster/issues/22579.
+                        .withOffsetSameLocal(
+                                OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault())
+                                        .getOffset())
+                        // Convert the normalized value to configured timezone
+                        .withOffsetSameInstant(
+                                ZoneId.of(zoneId).getRules().getOffset(Instant.EPOCH))
+                        .format(offsetTimeFormatter);
 
         assertThatValueFromSqlRowSetIsEqualToExpectedValue(resultSet, expectedValue);
     }
@@ -160,7 +175,8 @@ class HibernateTimeZoneIT {
         return "SELECT %s FROM jhi_date_time_wrapper where id=%d".formatted(fieldName, id);
     }
 
-    private void assertThatValueFromSqlRowSetIsEqualToExpectedValue(SqlRowSet sqlRowSet, String expectedValue) {
+    private void assertThatValueFromSqlRowSetIsEqualToExpectedValue(
+            SqlRowSet sqlRowSet, String expectedValue) {
         while (sqlRowSet.next()) {
             String dbValue = sqlRowSet.getString(1);
 

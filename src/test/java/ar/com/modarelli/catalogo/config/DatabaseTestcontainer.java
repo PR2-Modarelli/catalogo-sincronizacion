@@ -10,11 +10,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @TestConfiguration(proxyBeanMethods = false)
 public class DatabaseTestcontainer {
 
-    private static final PostgreSQLContainer DATABASE_CONTAINER = new PostgreSQLContainer("postgres:18.6")
-        .withDatabaseName("catalogo")
-
-        .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(DatabaseTestcontainer.class)))
-        .withReuse(true);
+    private static final PostgreSQLContainer DATABASE_CONTAINER =
+            new PostgreSQLContainer("postgres:18.6")
+                    .withDatabaseName("catalogo")
+                    .withLogConsumer(
+                            new Slf4jLogConsumer(
+                                    LoggerFactory.getLogger(DatabaseTestcontainer.class)))
+                    .withReuse(true);
 
     @Bean
     @ServiceConnection
