@@ -102,7 +102,14 @@ public class JpaConsultaCatalogoAdapter
                         condiciones.add(
                                 cb.or(
                                         cb.like(cb.lower(root.get("nombre")), patron, '!'),
-                                        cb.like(cb.lower(root.get("apellido")), patron, '!')));
+                                        cb.like(cb.lower(root.get("apellido")), patron, '!'),
+                                        cb.like(
+                                                cb.lower(
+                                                        cb.concat(
+                                                                cb.concat(root.get("nombre"), " "),
+                                                                root.get("apellido"))),
+                                                patron,
+                                                '!')));
                     }
                     if (categoriaId != null)
                         condiciones.add(cb.equal(root.get("categoria").get("id"), categoriaId));

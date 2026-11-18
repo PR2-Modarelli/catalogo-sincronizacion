@@ -33,6 +33,15 @@ public class ConsultaCatalogoServicio implements ConsultarCatalogoUseCase {
             DayOfWeek dia,
             int pagina,
             int tamanio) {
+        if (categoriaId != null && categoriaId <= 0)
+            throw new ar.com.modarelli.catalogo.domain.exception.ErrorCatalogo(
+                    400, "La categoria debe tener un ID positivo");
+        if (pagina < 0
+                || tamanio < 1
+                || tamanio > 100
+                || (long) pagina * tamanio > Integer.MAX_VALUE)
+            throw new ar.com.modarelli.catalogo.domain.exception.ErrorCatalogo(
+                    400, "Pagina o tamanio invalido");
         return consulta.buscar(nombre, categoriaId, habilitado, conAgenda, dia, pagina, tamanio);
     }
 
