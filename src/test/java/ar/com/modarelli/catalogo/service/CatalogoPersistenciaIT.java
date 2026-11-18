@@ -52,7 +52,7 @@ class CatalogoPersistenciaIT {
                             jdbc.update("delete from categoria");
                             jdbc.update(
                                     "update estado_catalogo set version_aplicada=null,"
-                                        + " sincronizado_en=null where id=1");
+                                            + " sincronizado_en=null where id=1");
                         });
     }
 
@@ -300,5 +300,118 @@ class CatalogoPersistenciaIT {
                 .andExpect(jsonPath("$.categoriaHabilitada").value(false));
         mvc.perform(get("/api/catalogo/profesionales/999/agenda").with(jwt()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void buscaNombreCompletoConEspaciosExterioresYMayusculas() throws Exception {
+        sincronizacion.aplicar(snapshot(7));
+        mvc.perform(get("/api/catalogo/profesionales").with(jwt()).param("nombre", "  aNa gOmEz  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.contenido[0].id").value(15));
+    }
+
+    @Test
+    void combinaTodosLosFiltrosPorHttp() throws Exception {
+        sincronizacion.aplicar(snapshot(7));
+        mvc.perform(
+                        get("/api/catalogo/profesionales")
+                                .with(jwt())
+                                .param("nombre", "Gomez")
+                                .param("categoriaId", "1")
+                                .param("habilitado", "true")
+                                .param("conAgenda", "true")
+                                .param("diaSemana", "MONDAY")
+                                .param("pagina", "0")
+                                .param("tamanio", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.contenido[0].id").value(15));
+    }
+
+    @Test
+    void combinacionSinCoincidenciasEsPaginaVacia() throws Exception {
+        sincronizacion.aplicar(snapshot(7));
+        mvc.perform(
+                        get("/api/catalogo/profesionales")
+                                .with(jwt())
+                                .param("nombre", "Ana")
+                                .param("habilitado", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.contenido").isEmpty());
+    }
+
+    @Test
+    void agendaSeRestringeAlDiaYNoDuplicaProfesionales() throws Exception {
+        sincronizacion.aplicar(snapshot(7));
+        mvc.perform(get("/api/catalogo/profesionales").with(jwt()).param("diaSemana", "MONDAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(get("/api/catalogo/profesionales").with(jwt()).param("diaSemana", "SUNDAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0));
+        mvc.perform(
+                        get("/api/catalogo/profesionales")
+                                .with(jwt())
+                                .param("conAgenda", "false")
+                                .param("diaSemana", "SUNDAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(3));
+    }
+
+    @Test
+    void reglasDeshabilitadasNoCuentanComoAgenda() throws Exception {
+        sincronizacion.aplicar(snapshot(7));
+        new org.springframework.transaction.support.TransactionTemplate(gestor)
+                .executeWithoutResult(
+                        tx -> jdbc.update("update horario_semanal set habilitado=false"));
+        mvc.perform(get("/api/catalogo/profesionales").with(jwt()).param("conAgenda", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
+    void validaParametrosDeBusquedaPorHttp() throws Exception {
+        sincronizacion.aplicar(snapshot(7));
+        for (var par :
+                List.of(
+                        new String[] {"categoriaId", "0"},
+                        new String[] {"categoriaId", "-1"},
+                        new String[] {"pagina", "-1"},
+                        new String[] {"tamanio", "0"},
+                        new String[] {"tamanio", "101"},
+                        new String[] {"pagina", "2147483647"},
+                        new String[] {"diaSemana", "LUNES"},
+                        new String[] {"habilitado", "invalido"},
+                        new String[] {"conAgenda", "invalido"},
+                        new String[] {"nombre", "x".repeat(256)})) {
+            mvc.perform(get("/api/catalogo/profesionales").with(jwt()).param(par[0], par[1]))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void conservaTotalYOrdenEnPaginasSucesivas() throws Exception {
+        sincronizacion.aplicar(snapshot(7));
+        for (int pagina = 0; pagina < 3; pagina++) {
+            int esperado = List.of(15, 17, 16).get(pagina);
+            mvc.perform(
+                            get("/api/catalogo/profesionales")
+                                    .with(jwt())
+                                    .param("pagina", String.valueOf(pagina))
+                                    .param("tamanio", "1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.total").value(3))
+                    .andExpect(jsonPath("$.contenido[0].id").value(esperado));
+        }
+        mvc.perform(
+                        get("/api/catalogo/profesionales")
+                                .with(jwt())
+                                .param("pagina", "3")
+                                .param("tamanio", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.contenido").isEmpty());
     }
 }

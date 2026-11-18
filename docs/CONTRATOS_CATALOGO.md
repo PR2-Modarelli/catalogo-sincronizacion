@@ -16,12 +16,12 @@ Lista categorías locales, incluidas deshabilitadas, ordenadas por nombre e ID. 
 
 | Parámetro opcional | Significado |
 | --- | --- |
-| nombre | Parte de nombre o apellido, sin distinguir mayúsculas. Espacios exteriores se quitan. %, _ y ! se buscan literalmente. No normaliza tildes. |
-| categoriaId | ID exacto de categoría |
+| nombre | Parte de nombre, apellido o nombre completo en orden nombre + espacio + apellido, sin distinguir mayúsculas. Espacios exteriores se quitan. %, _ y ! se buscan literalmente. No normaliza tildes. |
+| categoriaId | ID positivo exacto de categoría; una categoría inexistente produce cero coincidencias |
 | habilitado | true o false; ausente no filtra |
 | conAgenda | true exige al menos una regla habilitada; false exige que no exista |
 | diaSemana | MONDAY a SUNDAY. Restringe las reglas consideradas. Sin conAgenda equivale a exigir agenda ese día. |
-| pagina | Índice desde 0; por defecto 0 |
+| pagina | Índice desde 0; por defecto 0. El desplazamiento pagina × tamanio no puede superar 2147483647 |
 | tamanio | 1 a 100; por defecto 20 |
 
 Filtros combinables mediante AND. Las reglas para agenda deben estar habilitadas, pero el estado del profesional se controla con habilitado. No hay exclusión implícita de categorías deshabilitadas.
@@ -29,6 +29,28 @@ Filtros combinables mediante AND. Las reglas para agenda deben estar habilitadas
 Respuesta: contenido (id, nombre, apellido, categoriaId, categoria, habilitado), total, pagina, tamanio. Orden: apellido, nombre, id. Cero coincidencias devuelve 200 con contenido vacío. Parámetros inválidos devuelven 400. Antes de sincronizar, 503.
 
 **Este filtro de agenda no verifica ocupaciones: no es disponibilidad real de turnos.**
+
+La búsqueda local cubre categoría, nombre y estado habilitado. Para el criterio de
+agenda se ofrecen `conAgenda` y `diaSemana`: con `conAgenda=false&diaSemana=SUNDAY`
+se buscan profesionales sin reglas habilitadas el domingo, aunque atiendan otros
+días. Una categoría o profesional deshabilitados no se ocultan implícitamente;
+quien construye los turnos debe comprobar también la habilitación de ambos.
+
+Ejemplos para KMP (todos requieren el encabezado Authorization Bearer):
+
+- `/api/catalogo/profesionales?nombre=Ana%20Gomez`
+- `/api/catalogo/profesionales?categoriaId=101&habilitado=true&conAgenda=true&diaSemana=THURSDAY`
+- `/api/catalogo/profesionales?conAgenda=false&diaSemana=SUNDAY&pagina=0&tamanio=20`
+
+Los filtros se pueden omitir; no hay coincidencias si sus condiciones se
+contradicen. La búsqueda de nombre no interpreta `%` ni `_` como comodines SQL.
+No normaliza acentos ni espacios interiores, ni invierte automáticamente el
+orden del nombre completo. Un nombre vacío o compuesto solo por espacios no filtra.
+
+Para conocer horarios efectivamente libres se usa, después de elegir profesional
+y fecha, `GET /api/turnos/disponibilidad` del servicio de turnos. Esa consulta
+combina la agenda del catálogo con las ocupaciones actuales de la cátedra. Tener
+agenda en el listado no garantiza que queden turnos libres al reservar.
 
 ### GET /api/catalogo/profesionales/{id}/horarios
 
